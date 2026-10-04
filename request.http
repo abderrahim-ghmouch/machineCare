@@ -1,0 +1,20 @@
+
+@baseUrl=http://localhost:3001
+POST {{{{baseUrl}}}}/auth/login
+Content-Type: application/json
+
+{
+  "email": "abderrahimghmouch@gmail.com",
+  "password": "123456789"
+}
+
+###
+
+GET {{{{baseUrl}}}}/api/unko
+
+###
+
+POST {{{{baseUrl}}}}/api/auth 
+
+Content-Content-Type: application/json:
+
