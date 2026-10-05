@@ -12,7 +12,7 @@ app.use(express.json())
 
 app.use('/api/auth',router)
 
-app.use('/api/health', function test() { console.log('its working') })
+//app.use('/api/health', function test() { console.log('its working') })
 
 app.use(notFound)
 

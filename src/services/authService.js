@@ -67,11 +67,14 @@ export const register = async function (data) {
     if (!name || !email || !password) {
         throw new AppError('Name, email, and password are required', 400);
     }
+    if (typeof email !== 'string') {
+        throw new AppError('Email must be a string', 400);
+    }
     
     // Check if user already exists
     const existingUser = await User.findOne({ email: email.toLowerCase() });
     if (existingUser) {
-        throw new AppError('User already exists', 400);
+        throw new AppError('User already exists', 409);
     }
 
     const hashedPassword = await hashPassword(password);
