@@ -1,6 +1,6 @@
 
-@baseUrl=http://localhost:3001
-POST {{{{baseUrl}}}}/auth/login
+@baseUrl=http://localhost:3001/api
+POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
 {
@@ -10,11 +10,17 @@ Content-Type: application/json
 
 ###
 
-GET {{{{baseUrl}}}}/api/unko
+GET {{baseUrl}}/api/unko
 
 ###
 
-POST {{{{baseUrl}}}}/api/auth 
+POST {{baseUrl}}/auth/login
 
 Content-Content-Type: application/json:
+
+{email:abderrahimghmouch@gmail.com
+pas
+}
+
+
 

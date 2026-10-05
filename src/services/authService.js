@@ -62,3 +62,31 @@ export const login = async function (email, password) {
         }
     }
 }
+export const register = async function (data) {
+    const { name, email, password } = data;
+    if (!name || !email || !password) {
+        throw new AppError('Name, email, and password are required', 400);
+    }
+    
+    // Check if user already exists
+    const existingUser = await User.findOne({ email: email.toLowerCase() });
+    if (existingUser) {
+        throw new AppError('User already exists', 400);
+    }
+
+    const hashedPassword = await hashPassword(password);
+    
+    const newUser = await User.create({
+        name,
+        email: email.toLowerCase(),
+        password: hashedPassword
+    });
+    
+    return {
+        user: {
+            id: newUser._id,
+            name: newUser.name,
+            email: newUser.email
+        }
+    };
+};
