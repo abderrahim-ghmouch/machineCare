@@ -1,5 +1,11 @@
+@baseUrl = http://localhost:3001/api
 
-@baseUrl=http://localhost:3001/api
+###############################################
+# 1. AUTHENTICATION
+###############################################
+
+### 1.1 Login OK (expect 200 and a token)
+# @name login
 POST {{baseUrl}}/auth/login
 Content-Type: application/json
 
@@ -8,19 +14,295 @@ Content-Type: application/json
   "password": "123456789"
 }
 
-###
-
-GET {{baseUrl}}/api/unko
-
-###
-
+### 1.2 Login with a wrong password (expect 401)
 POST {{baseUrl}}/auth/login
+Content-Type: application/json
 
-Content-Content-Type: application/json:
-
-{email:abderrahimghmouch@gmail.com
-pas
+{
+  "email": "abderrahimghmouch@gmail.com",
+  "password": "wrongpassword"
 }
 
+### 1.3 Login with a missing field (expect 400)
+POST {{baseUrl}}/auth/login
+Content-Type: application/json
 
+{
+  "email": "abderrahimghmouch@gmail.com"
+}
 
+### 1.4 Protected route WITHOUT a token (expect 401)
+GET {{baseUrl}}/machines
+
+### 1.5 Protected route with an INVALID token (expect 401)
+GET {{baseUrl}}/machines
+Authorization: Bearer this.is.not.a.valid.token
+
+###############################################
+# 2. USERS
+###############################################
+
+### 2.1 My profile (expect 200, no password in the response)
+GET {{baseUrl}}/users/me
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 2.2 Update my name (expect 200)
+PUT {{baseUrl}}/users/me
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "name": "Amin"
+}
+
+### 2.3 Create a new user (expect 201)
+# @name createUser
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "name": "Sara",
+  "email": "sara{{$timestamp}}@test.com",
+  "password": "sara1234"
+}
+
+### 2.4 Same email again (expect 409)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "name": "Sara",
+  "email": "{{createUser.response.body.$.user.email}}",
+  "password": "sara1234"
+}
+
+### 2.5 Create a user WITHOUT a token (expect 401)
+POST {{baseUrl}}/auth/register
+Content-Type: application/json
+
+{
+  "name": "Hacker",
+  "email": "hacker@test.com",
+  "password": "hacker123"
+}
+
+###############################################
+# 3. MACHINES
+###############################################
+
+### 3.1 Create a machine (expect 201)
+# @name createMachine
+POST {{baseUrl}}/machines
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "reference": "M-{{$timestamp}}",
+  "name": "Hydraulic press",
+  "workshop": "Atelier A"
+}
+
+### 3.2 Same reference again (expect 409)
+POST {{baseUrl}}/machines
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "reference": "{{createMachine.response.body.$.reference}}",
+  "name": "Duplicate",
+  "workshop": "Atelier A"
+}
+
+### 3.3 Machine with an unknown state (expect 400)
+POST {{baseUrl}}/machines
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "reference": "M-BAD-{{$timestamp}}",
+  "name": "Broken state",
+  "workshop": "Atelier A",
+  "state": "exploded"
+}
+
+### 3.4 Machine with a missing field (expect 400)
+POST {{baseUrl}}/machines
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "name": "No reference",
+  "workshop": "Atelier A"
+}
+
+### 3.5 List all machines (expect 200)
+GET {{baseUrl}}/machines
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 3.6 Filter by workshop (expect 200)
+GET {{baseUrl}}/machines?workshop=Atelier A
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 3.7 Filter by state (expect 200)
+GET {{baseUrl}}/machines?state=disponible
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 3.8 Filter with an unknown state (expect 400)
+GET {{baseUrl}}/machines?state=exploded
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 3.9 Machine detail (expect 200)
+GET {{baseUrl}}/machines/{{createMachine.response.body.$._id}}
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 3.10 Malformed id (expect 400)
+GET {{baseUrl}}/machines/abc
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 3.11 Valid id that does not exist (expect 404)
+GET {{baseUrl}}/machines/64b7f0f0f0f0f0f0f0f0f0f0
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 3.12 Update the machine state (expect 200)
+PUT {{baseUrl}}/machines/{{createMachine.response.body.$._id}}
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "state": "en maintenance"
+}
+
+###############################################
+# 4. REPORTS (breakdowns)
+###############################################
+
+### 4.1 Report a breakdown (expect 201, status "ouvert")
+# @name createReport
+POST {{baseUrl}}/reports
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "machine": "{{createMachine.response.body.$._id}}",
+  "description": "The press loses hydraulic pressure after 10 minutes"
+}
+
+### 4.2 Report with an empty description (expect 400)
+POST {{baseUrl}}/reports
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "machine": "{{createMachine.response.body.$._id}}",
+  "description": "   "
+}
+
+### 4.3 Report on a machine that does not exist (expect 404)
+POST {{baseUrl}}/reports
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "machine": "64b7f0f0f0f0f0f0f0f0f0f0",
+  "description": "Ghost machine"
+}
+
+### 4.4 Report with a malformed machine id (expect 400)
+POST {{baseUrl}}/reports
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "machine": "abc",
+  "description": "Bad id"
+}
+
+### 4.5 List reports (expect 200)
+GET {{baseUrl}}/reports
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 4.6 Filter reports by machine (expect 200)
+GET {{baseUrl}}/reports?machine={{createMachine.response.body.$._id}}
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 4.7 Filter reports by status (expect 200)
+GET {{baseUrl}}/reports?status=ouvert
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 4.8 Filter with an unknown status (expect 400)
+GET {{baseUrl}}/reports?status=pending
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 4.9 Report detail (expect 200)
+GET {{baseUrl}}/reports/{{createReport.response.body.$._id}}
+Authorization: Bearer {{login.response.body.$.token}}
+
+### 4.10 Move the report to "en cours" (expect 200)
+PUT {{baseUrl}}/reports/{{createReport.response.body.$._id}}
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "status": "en cours"
+}
+
+### 4.11 Unknown status (expect 400)
+PUT {{baseUrl}}/reports/{{createReport.response.body.$._id}}
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "status": "finished"
+}
+
+### 4.12 Resolve WITHOUT a note (expect 400)
+PUT {{baseUrl}}/reports/{{createReport.response.body.$._id}}
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "status": "résolu"
+}
+
+### 4.13 Resolve WITH a note (expect 200, resolvedAt set)
+PUT {{baseUrl}}/reports/{{createReport.response.body.$._id}}
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "status": "résolu",
+  "resolutionNote": "Replaced the hydraulic seal and tested for 30 minutes"
+}
+
+### 4.14 Go back to "ouvert" after resolution (expect 400)
+PUT {{baseUrl}}/reports/{{createReport.response.body.$._id}}
+Content-Type: application/json
+Authorization: Bearer {{login.response.body.$.token}}
+
+{
+  "status": "ouvert"
+}
+
+### 4.15 Report history of the machine (expect 200)
+GET {{baseUrl}}/machines/{{createMachine.response.body.$._id}}/reports
+
+Authorization: Bearer {{login.response.body.$.token}}
+
+###############################################
+# 5. DELETE RULE
+###############################################
+
+### 5.1 Delete a machine that has reports (expect 409)
+DELETE {{baseUrl}}/machines/{{createMachine.response.body.$._id}}
+
+Authorization: Bearer {{login.response.body.$.token}}
+
+###############################################
+# 6. ROUTES
+###############################################
+
+### 6.1 Unknown route (expect 404 in JSON)
+GET {{baseUrl}}/unknown
+EOF

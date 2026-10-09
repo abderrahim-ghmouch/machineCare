@@ -44,11 +44,13 @@ export const login = async function (email, password) {
         email: email.toLocaleLowerCase()
     }).select('+password')
 
-      const valid = user && (await bcrypt.compare(password, user.password))
+    const valid = user && (await bcrypt.compare(password, user.password))
 
     if (!valid) throw new AppError('Invalid email or password', 401)
-    
-    const token = jwt.sign({  id: user._id }, process.env.JWT_SECRET, {
+
+    const token = jwt.sign({
+        id: user._id
+    }, process.env.JWT_SECRET, {
         expiresIn: process.env.JWT_EXPIRES_IN,
     })
 
@@ -63,33 +65,39 @@ export const login = async function (email, password) {
     }
 }
 export const register = async function (data) {
-    const { name, email, password } = data;
+    const {
+        name,
+        email,
+        password
+    } = data
     if (!name || !email || !password) {
-        throw new AppError('Name, email, and password are required', 400);
+        throw new AppError('Name, email, and password are required', 400)
     }
     if (typeof email !== 'string') {
-        throw new AppError('Email must be a string', 400);
-    }
-    
-    // Check if user already exists
-    const existingUser = await User.findOne({ email: email.toLowerCase() });
-    if (existingUser) {
-        throw new AppError('User already exists', 409);
+        throw new AppError('Email must be a string', 400)
     }
 
-    const hashedPassword = await hashPassword(password);
-    
+    // Check if user already exists
+    const existingUser = await User.findOne({
+        email: email.toLowerCase()
+    })
+    if (existingUser) {
+        throw new AppError('User already exists', 409)
+    }
+
+    const hashedPassword = await hashPassword(password)
+
     const newUser = await User.create({
         name,
         email: email.toLowerCase(),
         password: hashedPassword
-    });
-    
+    })
+
     return {
         user: {
             id: newUser._id,
             name: newUser.name,
             email: newUser.email
         }
-    };
-};
+    }
+}
